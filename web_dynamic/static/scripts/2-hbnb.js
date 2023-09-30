@@ -1,46 +1,45 @@
-// wait for the DOM to be fully loaded before executing the script
-window.addEventListener('DOMContentLoaded', () => {
-  // Select all checkboxes on the page
-  const checkboxes = document.querySelectorAll('input[type="checkbox"]');
-  // Select the <h4> element inside the element with class "amenities"
-  const amenities_h4 = document.querySelector('.amenities h4');
-  // Select the element with the ID "api_status"
-  const apiStatusDiv = document.querySelector('#api_status');
+$(document).ready(function () {
+  let selectedAmenities = []
 
-  // Initialize an empty list to store selected amenities
-  let amenities_list = [];
-
-  // Loop through each checkbox
-  checkboxes.forEach(checkbox => {
-    // Add a change event listener to each checkbox
-    checkbox.addEventListener('change', (e) => {
-      // Check if the checkbox is checked
-      if (e.target.checked === true) {
-        // If checked, add the amenity name to the list
-        amenities_list.push(checkbox.getAttribute('data-name'));
-      } else {
-        // If unchecked, remove the amenity name from the list
-        amenities_list = amenities_list.filter(name => name !== checkbox.getAttribute('data-name'));
+  function checkApiStatus () {
+    $.ajax({
+      type: 'GET',
+      url: 'http://0.0.0.0:5001/api/v1/status/',
+      success: function (data) {
+        if (data.status === 'OK') {
+          $('#api_status').addClass('available')
+        } else {
+          $('#api_status').removeClass('available')
+        }
       }
-      // Update the displayed amenities list with a comma-separated string
-      amenities_h4.innerHTML = amenities_list.join(', ');
+    })
+  }
 
-      // Request the API status from the specified URL
-      fetch('http://0.0.0.0:5001/api/v1/status/')
-        .then(response => response.json())
-        .then(data => {
-          // Check if the API status is "OK" and update the class accordingly
-          if (data.status === 'OK') {
-            apiStatusDiv.classList.add('available');
-          } else {
-            // If the API status is not "OK," remove the "available" class
-            apiStatusDiv.classList.remove('available');
-          }
-        })
-        .catch(error => {
-          // Log an error message if there's an issue with the API request
-          console.error('Error fetching API status:', error);
-        });
-    });
-  });
-});
+  checkApiStatus()
+
+  // Select all amenity input checkboxes
+  $('.amenities input[type="checkbox"]').change(function () {
+    const amenityId = $(this).data('id')
+    const amenityName = $(this).data('name')
+
+    // Verify if the checkbox is checked or not
+    if ($(this).is(':checked')) {
+      selectedAmenities.push({ id: amenityId, name: amenityName })
+    } else {
+      // If unchecked, remove the amenity that matches the Id
+      selectedAmenities = selectedAmenities.filter(function (amenity) {
+        return amenity.id !== amenityId
+      })
+    }
+
+    // Update the <h4> tag with the list of selected amenities
+    const amenitiesList = selectedAmenities.map(function (amenity) {
+      return amenity.name
+    }).join(', ')
+
+    $('.amenities h4').text('Selected Amenities: ' + amenitiesList)
+
+    // Check the state of selectedAmenities
+    console.log('Selected Amenities:', selectedAmenities)
+  })
+})
